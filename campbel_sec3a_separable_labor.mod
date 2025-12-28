@@ -53,18 +53,30 @@ model;
 end;
 
 // ============================================
-// ESTADO ESTACIONARIO (Dynare lo resolverá numéricamente)
-// ============================================
-// Nota: El estado estacionario se resuelve numéricamente
-// porque n y k están acoplados a través de las FOCs
-
-initval;
+// ESTADO ESTACIONARIO ANALÍTICO
+// Se obtiene una solución cerrada usando la condición de Euler en SS y la FOC laboral.
+steady_state_model;
+  // Tecnología en SS
   a = 0;
-  n = log(0.33);
-  k = log( ( alpha / ( 1/beta - (1-delta) ) )^(1/(1-alpha)) );
-  y = log( exp(k)^alpha * exp(n)^(1-alpha) );
-  i = log(delta) + k;
-  c = log(exp(y) - exp(i));
+
+  // kappa = Y/K en estado estacionario (de Euler):
+  // alpha * (Y/K) = 1/beta - (1-delta)  => kappa = (1/beta - (1-delta)) / alpha
+  kappa = (1/beta - (1-delta)) / alpha;
+
+  // Trabajo en estado estacionario (N) — solución cerrada
+  // N = [ (1-alpha)*kappa/(kappa-delta) ] / [ phi_n + (1-alpha)*kappa/(kappa-delta) ]
+  N_ss = ( (1-alpha)*kappa/(kappa - delta) ) / ( phi_n + (1-alpha)*kappa/(kappa - delta) );
+  n = log(N_ss);
+
+  // Capital en SS: K = N * kappa^{-1/(1-alpha)}
+  K_ss = N_ss * kappa^(-1/(1-alpha));
+  k = log(K_ss);
+
+  // Producción, inversión y consumo en SS
+  Y_ss = K_ss^alpha * N_ss^(1-alpha);
+  y = log(Y_ss);
+  i = log(delta) + k;                 // I_ss = delta * K_ss
+  c = log(Y_ss - exp(i));
 end;
 
 resid;

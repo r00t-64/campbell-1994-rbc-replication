@@ -1,117 +1,123 @@
 // ============================================
-// CAMPBELL (1994) - SECCIÓN 4
-// Choques de gasto público con oferta laboral variable
-// Dos esquemas de financiación:
-//   1) Lump-sum (tau = 0)  -> no distorsiona FOCs, solo RC
-//   2) Impuesto proporcional al producto (tau > 0)
+// CAMPBELL (1994) - SECCIÓN 4 - SOLUCIÓN ANALÍTICA
 // ============================================
 
-var y c k i n a g;     // todas en logaritmos
-varexo e_a e_g;        // shocks de tecnología y gasto público
+var y c k i n g;
+varexo e_g;
 
-parameters alpha beta delta rho_a rho_g sigma phi_n tau g_y;
+parameters alpha beta delta sigma phi_n phi G_ss theta;
 
-// Tecnología y preferencias
+// PARÁMETROS
 alpha = 0.667;
-beta  = 0.99;
+beta = 0.99;
 delta = 0.025;
-rho_a = 0.979;
-rho_g = 0.9;
+sigma = 1;          // Log utility
+phi_n = 1.0;        // Elasticidad Frisch (ϕ)
+phi = 0.95;         // Persistencia gasto (φ)
+G_ss = 0.2;         // Gasto en SS (nivel)
+// theta será calibrado en steady_state_model
 
-sigma = 1;        // inverso de EIS (log utilidad en c)
-phi_n = 1.0;      // peso del ocio (separable)
-
-// Gasto público en estado estacionario (como fracción de Y)
-g_y = 0.2;
-
-// Tipo impositivo proporcional sobre el producto:
-//   tau = 0   -> financiación lump-sum (sin distorsión)
-//   tau > 0   -> financiación distorsionante
-tau = 0.0;
-
-// ============================================
-// MODELO NO LINEAL
-// ============================================
 model;
-  // (1) Producción
-  exp(y) = exp(a) * exp(k(-1))^alpha * exp(n)^(1-alpha);
+    // 1. PRODUCCIÓN
+    exp(y) = exp(k(-1))^alpha * exp(n)^(1-alpha);
 
-  // (2) Restricción de recursos agregada:
-  // Y_t = C_t + I_t + G_t
-  exp(y) = exp(c) + exp(i) + exp(g);
+    // 2. RESTRICCIÓN RECURSOS
+    // g es log(G/G_ss), entonces G_t = G_ss * exp(g)
+    exp(y) = exp(c) + exp(i) + G_ss * exp(g);
 
-  // (3) Acumulación de capital
-  exp(k) = (1-delta) * exp(k(-1)) + exp(i);
+    // 3. ACUMULACIÓN CAPITAL
+    exp(k) = (1-delta) * exp(k(-1)) + exp(i);
 
-  // (4) Euler intertemporal con posible impuesto distorsionante
-  // u_c(C_t) = C_t^(-sigma)
-  // u_c(C_t) = beta E_t[ u_c(C_{t+1}) * ( (1-tau)*r_{t+1} + 1 - delta ) ]
-  // r_{t+1} = alpha * Y_{t+1} / K_t
-  exp(c)^(-sigma) = beta * exp(c(+1))^(-sigma) *
-                    ( (1-tau) * alpha * exp(y(+1)) / exp(k) + 1 - delta );
+    // 4. ECUACIÓN EULER
+    exp(c)^(-sigma) = beta * exp(c(+1))^(-sigma) * 
+                      (alpha * exp(y(+1))/exp(k) + 1 - delta);
 
-  // (5) FOC intratemporal trabajo-ocio (modelo separable)
-  // u(c,n) = log c + phi_n log(1-n)
-  // phi_n / (1-n) = (1/c) * (1-tau) * w_t
-  // w_t = (1-alpha) * Y_t / N_t
-  phi_n / (1 - exp(n)) = (1/exp(c)) * (1-tau) * (1-alpha) * exp(y) / exp(n);
+    // 5. FOC TRABAJO CON theta
+    theta * exp(n)^(1/phi_n) = (1/exp(c)) * (1-alpha) * exp(y) / exp(n);
 
-  // (6) Proceso de tecnología
-  a = rho_a * a(-1) + e_a;
-
-  // (7) Proceso de gasto público (en log de desviaciones respecto al ss)
-  // g_hat_t = rho_g * g_hat_{t-1} + e_g
-  g = rho_g * g(-1) + e_g;
+    // 6. PROCESO GASTO
+    g = phi * g(-1) + e_g;
 end;
 
 // ============================================
-// ESTADO ESTACIONARIO (Dynare lo resolverá numéricamente)
+// ESTADO ESTACIONARIO ANALÍTICO
 // ============================================
-// Nota: El estado estacionario se resuelve numéricamente
-// porque n, k y g están acoplados a través de las FOCs
-
-initval;
-  a = 0;
-  g = 0;
-  n = log(0.33);
-  k = log( ( alpha / ( 1/beta - (1-delta) ) )^(1/(1-alpha)) );
-  y = log( exp(k)^alpha * exp(n)^(1-alpha) );
-  i = log(delta) + k;
-  c = log(exp(y) - exp(i) - g_y * exp(y));
+steady_state_model;
+    // 1. RATIO Y/K DE EULER
+    Y_over_K = (1/beta - (1-delta)) / alpha;
+    
+    // 2. NORMALIZACIÓN: N_ss = 0.33 (Campbell)
+    N_ss = 0.33;
+    n = log(N_ss);
+    
+    // 3. CAPITAL CONSISTENTE
+    // De Y/K = ratio y Y = K^α * N^(1-α)
+    K_ss = N_ss * (Y_over_K)^(1/(alpha-1));
+    k = log(K_ss);
+    
+    // 4. PRODUCCIÓN
+    Y_ss = K_ss^alpha * N_ss^(1-alpha);
+    y = log(Y_ss);
+    
+    // 5. INVERSIÓN
+    I_ss = delta * K_ss;
+    i = log(I_ss);
+    
+    // 6. GASTO PÚBLICO (en desviaciones log)
+    g = 0;  // log(G/G_ss) = 0 en SS
+    
+    // 7. CONSUMO DE RESTRICCIÓN
+    C_ss = Y_ss - I_ss - G_ss;
+    c = log(C_ss);
+    
+    // 8. CALIBRAR θ PARA QUE FOC TRABAJO SE CUMPLA
+    // FOC: θ * N^(1/φ_n) = (1-α)*(Y/N) / C
+    theta = ((1-alpha) * (Y_ss/N_ss) / C_ss) * (N_ss^(-1/phi_n));
 end;
 
+// ============================================
+// VERIFICACIÓN
+// ============================================
 resid;
 steady;
 check;
 
+// ============================================
+// SHOCK
+// ============================================
 shocks;
-  var e_a = 0.0072^2;
-  var e_g = 0.01^2;
+    var e_g = 0.01^2;  // Shock 1% en gasto
 end;
 
 // ============================================
-// IRFs Y SIMULACIÓN ESTOCÁSTICA
+// SIMULACIÓN
 // ============================================
-stoch_simul(order = 1, irf = 40) y c i k n a g;
+stoch_simul(order = 1, irf = 40, nograph) y c i n g k;
+
+// ============================================
+// RESULTADOS
+// ============================================
+eta_yg = oo_.irfs.y_e_g(1);
+eta_cg = oo_.irfs.c_e_g(1);
+eta_ig = oo_.irfs.i_e_g(1);
+eta_ng = oo_.irfs.n_e_g(1);
+eta_kg = oo_.irfs.k_e_g(1);
+
+printf('\n=============================================\n');
+printf('RESULTADOS TABLA 6 - φ_n=%.1f, φ=%.2f\n', phi_n, phi);
+printf('=============================================\n');
+printf('Elasticidades impacto (t=0):\n');
+printf('  η_{yx} (producto-gasto)   = %7.8f\n', eta_yg);
+printf('  η_{cx} (consumo-gasto)    = %7.8f\n', eta_cg);
+printf('  η_{ix} (inversión-gasto)  = %7.8f\n', eta_ig);
+printf('  η_{nx} (trabajo-gasto)    = %7.8f\n', eta_ng);
+printf('  η_{kx} (capital-gasto)    = %7.8f\n', eta_kg);
+printf('=============================================\n');
+
 
 // ============================================
 // GRÁFICAS DE IRFs
 // ============================================
-// Gráficas automáticas de Dynare ya generadas arriba
-// IRFs a shock tecnológico
-figure('Name', 'IRFs - Shock Tecnológico');
-subplot(2,3,1); plot(0:40, [0; oo_.irfs.y_e_a(:)], 'b-', 'LineWidth', 2); title('Producto (y)'); grid on;
-subplot(2,3,2); plot(0:40, [0; oo_.irfs.c_e_a(:)], 'r-', 'LineWidth', 2); title('Consumo (c)'); grid on;
-subplot(2,3,3); plot(0:40, [0; oo_.irfs.i_e_a(:)], 'g-', 'LineWidth', 2); title('Inversión (i)'); grid on;
-subplot(2,3,4); plot(0:40, [0; oo_.irfs.k_e_a(:)], 'm-', 'LineWidth', 2); title('Capital (k)'); grid on;
-subplot(2,3,5); plot(0:40, [0; oo_.irfs.n_e_a(:)], 'c-', 'LineWidth', 2); title('Trabajo (n)'); grid on;
-subplot(2,3,6); plot(0:40, [0; oo_.irfs.a_e_a(:)], 'k-', 'LineWidth', 2); title('Tecnología (a)'); grid on;
-
-% Guardar figura de shock tecnológico
-if ~exist('plots','dir')
-  mkdir('plots');
-end
-print('-dpng','plots/campbel_sec4_irfs_tech.png');
 
 // IRFs a shock de gasto público
 figure('Name', 'IRFs - Shock de Gasto Público');
@@ -127,5 +133,3 @@ if ~exist('plots','dir')
   mkdir('plots');
 end
 print('-dpng','plots/campbel_sec4_irfs_fiscal.png');
-
-

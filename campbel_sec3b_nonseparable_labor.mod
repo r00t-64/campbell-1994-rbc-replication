@@ -48,18 +48,35 @@ model;
 end;
 
 // ============================================
-// ESTADO ESTACIONARIO (Dynare lo resolverá numéricamente)
-// ============================================
-// Nota: El estado estacionario se resuelve numéricamente
-// porque n y k están acoplados a través de las FOCs
-
-initval;
+// ESTADO ESTACIONARIO ANALÍTICO
+// Se obtiene una solución cerrada usando la condición de Euler en SS y la FOC intratemporal
+steady_state_model;
+  // Tecnología en SS
   a = 0;
-  n = log(0.33);
-  k = log( ( alpha / ( 1/beta - (1-delta) ) )^(1/(1-alpha)) );
-  y = log( exp(k)^alpha * exp(n)^(1-alpha) );
+
+  // kappa = Y/K en estado estacionario (de Euler)
+  kappa = (1/beta - (1-delta)) / alpha;
+
+  // Para utilidad no separable con peso gamma_u, la FOC intratemporal en SS da:
+  // ((1-gamma_u)/gamma_u) * C/(1-N) = (1-alpha) * Y / N
+  // con C = (kappa - delta) * K y Y = kappa * K, se obtiene:
+  // N = B / (A + B) con
+  // B = (1-alpha)*kappa
+  // A = ((1-gamma_u)/gamma_u) * (kappa - delta)
+  B = (1-alpha) * kappa;
+  A = ((1 - gamma_u) / gamma_u) * (kappa - delta);
+  N_ss = B / (A + B);
+  n = log(N_ss);
+
+  // Capital en SS
+  K_ss = N_ss * kappa^(-1/(1-alpha));
+  k = log(K_ss);
+
+  // Producción, inversión y consumo en SS
+  Y_ss = K_ss^alpha * N_ss^(1-alpha);
+  y = log(Y_ss);
   i = log(delta) + k;
-  c = log(exp(y) - exp(i));
+  c = log(Y_ss - exp(i));
 end;
 
 resid;
