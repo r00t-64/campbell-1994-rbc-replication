@@ -61,7 +61,7 @@ steady_state_model;
     // De Y = N^α * K^{1-α} y Y/K = ratio
     // K^{α-1} * N^α = Y/K
     // K = N * (Y/K)^{1/(α-1)}
-    K_ss = N_ss * (Y_over_K)^(1/(alpha-1));
+    K_ss = N_ss * (Y_over_K)^(-1/alpha);
     k = log(K_ss);
     
     // 4. PRODUCCIÓN
@@ -113,22 +113,16 @@ eta_ng = oo_.irfs.n_e_g(1);
 eta_kg = oo_.irfs.k_e_g(1);
 
 printf('\n=============================================\n');
-printf('CAMPBELL (1994) - TABLA 6 - NOTACIÓN EXACTA\n');
-printf('α=%.3f (trabajo), 1-α=%.3f (capital)\n', alpha, 1-alpha);
-printf('ϕ=%.1f (Frisch), φ=%.2f (persistencia)\n', phi_n, phi);
+printf('RESULTADOS TABLA 6 - φ_n=%.1f, φ=%.2f\n', phi_n, phi);
 printf('=============================================\n');
-printf('ESTADO ESTACIONARIO:\n');
-printf('  Y_ss = %.4f,  K_ss = %.4f,  N_ss = %.4f\n', exp(y), exp(k), exp(n));
-printf('  C_ss = %.4f,  I_ss = %.4f,  G_ss = %.4f\n', exp(c), exp(i), G_ss);
-printf('  C/Y = %.3f,  I/Y = %.3f,  G/Y = %.3f\n', exp(c)/exp(y), exp(i)/exp(y), G_ss/exp(y));
-printf('  θ = %.4f,  Y/K = %.4f\n', theta, exp(y)/exp(k));
-printf('\nELASTICIDADES IMPACTO (η_{yx}, etc.):\n');
-printf('  Producto:    %7.8f\n', eta_yg);
-printf('  Consumo:     %7.8f\n', eta_cg);
-printf('  Inversión:   %7.8f\n', eta_ig);
-printf('  Trabajo:     %7.8f\n', eta_ng);
-printf('  Capital:     %7.8f\n', eta_kg);
+printf('Elasticidades impacto (t=0):\n');
+printf('  η_{yx} (producto-gasto)   = %7.8f\n', eta_yg);
+printf('  η_{cx} (consumo-gasto)    = %7.8f\n', eta_cg);
+printf('  η_{ix} (inversión-gasto)  = %7.8f\n', eta_ig);
+printf('  η_{nx} (trabajo-gasto)    = %7.8f\n', eta_ng);
+printf('  η_{kx} (capital-gasto)    = %7.8f\n', eta_kg);
 printf('=============================================\n');
+
 
 // ============================================
 // GRÁFICAS DE IRFs
